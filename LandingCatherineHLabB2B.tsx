@@ -141,7 +141,7 @@ export default function LandingCatherineHLabB2B() {
     </label>
   );
 
-  const Textarea = ({ label, name, placeholder, rows = 4 }: any) => (
+  const Textarea = ({ label, name, placeholder, rows = 4, onChange, ...rest }: any) => (
     <label className="block">
       <span className="text-sm text-white/80">{label}</span>
       <textarea
@@ -150,6 +150,7 @@ export default function LandingCatherineHLabB2B() {
         placeholder={placeholder}
         rows={rows}
         onChange={onChange}
+        {...rest}
       />
     </label>
   );
@@ -406,7 +407,7 @@ export default function LandingCatherineHLabB2B() {
                 {/* Honeypot */}
                 <input className="hidden" name="honeypot" onChange={onChange} tabIndex={-1} autoComplete="off" />
 
-                <Textarea label="요청사항 / 알레르기" name="message" placeholder="행사 목적, 장소, 브랜드 가이드, 알레르기/채식 등" />
+                <Textarea label="요청사항 / 알레르기" name="message" placeholder="행사 목적, 장소, 브랜드 가이드, 알레르기/채식 등" onChange={onChange} />
 
                 {/* UTM hidden */}
                 <input type="hidden" name="utm_source" value={utm.utm_source} />
@@ -502,8 +503,9 @@ export default function LandingCatherineHLabB2B() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-sm flex flex-col md:flex-row gap-6 justify-between">
           <div className="space-y-2">
             <div className="font-bold">Catherine H Lab</div>
-            <div className="text-white/60">서울시 · B2B 케이터링 & VIP 도시락</div>
+            <div className="text-white/60">서울특별시 마포구 성미산로 43 6층 · B2B 케이터링 & VIP 도시락</div>
             <div className="text-white/50">contact@catherineh-lab.com · 02-000-0000</div>
+            <div className="text-white/50">인스타그램: @catherineH-Lab | 네이버플레이스: 캐서린에이치랩</div>
           </div>
           <div className="text-white/50">
             © {new Date().getFullYear()} Catherine H Lab. All rights reserved.
