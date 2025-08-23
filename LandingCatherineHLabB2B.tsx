@@ -60,7 +60,7 @@ export default function LandingCatherineHLabB2B() {
 
   const validate = () => {
     if (!form.name || !form.email || !form.company) return "이름/회사/이메일은 필수입니다.";
-    const emailOk = /.+@.+\..+/.test(form.email);
+    const emailOk = /.+@.+..+/.test(form.email);
     if (!emailOk) return "올바른 이메일 형식을 입력해주세요.";
     if (form.honeypot) return "스팸 감지"; // hidden field trap
     return null;
@@ -511,5 +511,3 @@ export default function LandingCatherineHLabB2B() {
         </div>
       </footer>
     </div>
-  );
-}
