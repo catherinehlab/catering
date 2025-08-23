@@ -511,3 +511,5 @@ export default function LandingCatherineHLabB2B() {
         </div>
       </footer>
     </div>
+  );
+}
