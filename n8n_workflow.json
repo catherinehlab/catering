@@ -1,0 +1,135 @@
+{
+  "name": "Catherine H Lab B2B Lead Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catherineh-lab-b2b-lead",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "f7b1b3a0-1234-4567-8901-123456789abc",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "catherineh-lab-b2b-lead"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "binaryData": false,
+        "fileName": "lead_data_{{new Date().toISOString().replace(/:/g, '-')}}.json",
+        "parent": "1ABC123XYZ_REPLACE_WITH_ACTUAL_FOLDER_ID",
+        "fileContent": "={{JSON.stringify($json, null, 2)}}",
+        "mimeType": "application/json"
+      },
+      "id": "f7b1b3a0-1234-4567-8901-123456789abd",
+      "name": "Save Lead to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [460, 240],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_ACTUAL_DRIVE_CREDENTIAL_ID",
+          "name": "Catherine H Lab Google Drive Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendRow",
+        "sheetId": "1ABC123XYZ_REPLACE_WITH_ACTUAL_SHEET_ID",
+        "sheetName": "Sheet1",
+        "values": "=[[$json.name, $json.company, $json.email, $json.phone, $json.eventDate, $json.headcount, $json.budget, $json.message, $json.utm_source, $json.utm_medium, $json.utm_campaign, $json.page, $json.timestamp]]"
+      },
+      "id": "f7b1b3a0-1234-4567-8901-123456789abe",
+      "name": "Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [460, 360],
+      "credentials": {
+        "googleSheetsApi": {
+          "id": "REPLACE_WITH_ACTUAL_SHEETS_CREDENTIAL_ID",
+          "name": "Catherine H Lab Google Sheets API Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "REPLACE_WITH_ACTUAL_TELEGRAM_CHAT_ID",
+        "text": "New B2B Lead from Catherine H Lab Landing Page:\nName: {{$json.name}}\nCompany: {{$json.company}}\nEmail: {{$json.email}}\nPhone: {{$json.phone}}\nEvent Date: {{$json.eventDate}}\nHeadcount: {{$json.headcount}}\nBudget: {{$json.budget}}\nMessage: {{$json.message}}\nSource: {{$json.utm_source}} / {{$json.utm_medium}}\nPage: {{$json.page}}",
+        "options": {}
+      },
+      "id": "f7b1b3a0-1234-4567-8901-123456789abf",
+      "name": "Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [460, 480],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_ACTUAL_TELEGRAM_CREDENTIAL_ID",
+          "name": "Catherine H Lab Telegram API Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "contact@catherineh-lab.com",
+        "toEmail": "={{$json.email}}",
+        "subject": "캐서린에이치랩 케이터링 문의 접수 확인",
+        "text": "안녕하세요 {{$json.name}}님,\n\n캐서린에이치랩에 문의해주셔서 감사합니다. 문의하신 내용은 성공적으로 접수되었으며, 담당자가 영업일 기준 24시간 이내에 연락드릴 예정입니다.\n\n문의 내용:\n회사명: {{$json.company}}\n행사일자: {{$json.eventDate}}\n예상 인원: {{$json.headcount}}\n예산: {{$json.budget}}\n요청사항: {{$json.message}}\n\n궁금한 점이 있으시면 언제든지 회신해주세요.\n\n감사합니다.\n캐서린에이치랩 드림",
+        "options": {}
+      },
+      "id": "f7b1b3a0-1234-4567-8901-123456789abg",
+      "name": "Email Reply",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [460, 600],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_ACTUAL_SMTP_CREDENTIAL_ID",
+          "name": "Catherine H Lab SMTP Credential"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Save Lead to Google Drive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "createdAt": "2024-08-23T00:00:00.000Z",
+  "updatedAt": "2024-08-23T00:00:00.000Z",
+  "id": "1",
+  "tags": []
+}
