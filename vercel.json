@@ -1,0 +1,23 @@
+{
+  "name": "catherineh-lab-catering",
+  "version": 2,
+  "builds": [
+    {
+      "src": "pages/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
