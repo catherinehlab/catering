@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
  * 4) Add your analytics snippets (GA4/Meta) in the indicated placeholders.
  */
 
-const WEBHOOK_URL = "https://YOUR-N8N-WEBHOOK-URL"; // TODO: set your webhook endpoint here
+const WEBHOOK_URL = "https://n8n.ax-con.com/webhook/catherineh-lab-b2b-lead"; // n8n webhook endpoint
 
 export default function LandingCatherineHLabB2B() {
   const [submitted, setSubmitted] = useState(false);
