@@ -20,6 +20,8 @@ registerLocale("ko", ko);
 const WEBHOOK_URL = "https://n8n.ax-con.com/webhook/catherineh-lab-b2b-lead"; // n8n webhook endpoint
 
 export default function LandingCatherineHLabB2B() {
+  console.log('LandingCatherineHLabB2B 컴포넌트가 렌더링되었습니다');
+  
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,13 +31,13 @@ export default function LandingCatherineHLabB2B() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
 
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const featuresRef = useRef<HTMLElement | null>(null);
-  const packagesRef = useRef<HTMLElement | null>(null);
-  const processRef = useRef<HTMLElement | null>(null);
-  const galleryRef = useRef<HTMLElement | null>(null);
-  const faqRef = useRef<HTMLElement | null>(null);
-  const leadFormRef = useRef<HTMLElement | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const featuresRef = useRef<HTMLElement>(null);
+  const packagesRef = useRef<HTMLElement>(null);
+  const processRef = useRef<HTMLElement>(null);
+  const galleryRef = useRef<HTMLElement>(null);
+  const faqRef = useRef<HTMLElement>(null);
+  const leadFormRef = useRef<HTMLElement>(null);
 
   // Capture UTM params
   useEffect(() => {
@@ -52,8 +54,12 @@ export default function LandingCatherineHLabB2B() {
 
   // Scroll helpers
   const scrollToRef = (ref: React.RefObject<HTMLElement>) => {
+    console.log('scrollToRef called', ref);
     if (ref.current) {
+      console.log('scrolling to element', ref.current);
       ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      console.log('ref.current is null', ref);
     }
   };
 
@@ -61,40 +67,42 @@ export default function LandingCatherineHLabB2B() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
-    const formData = new FormData(e.target as HTMLFormElement);
+
+    if (!formRef.current) return;
+
+    const formData = new FormData(formRef.current);
     const formValues = Object.fromEntries(formData.entries());
-    
+
     // Basic validation
     if (!formValues.name || !formValues.email || !formValues.company) {
       setError("이름/회사/이메일은 필수입니다.");
       return;
     }
-    
+
     const emailOk = /.+@.+\..+/.test(formValues.email as string);
     if (!emailOk) {
       setError("올바른 이메일 형식을 입력해주세요.");
       return;
     }
-    
+
     if (formValues.honeypot) {
       setError("스팸 감지");
       return;
     }
-    
+
     setSubmitting(true);
     try {
       const payload = {
         ...formValues,
         eventDate: eventDate ? eventDate.toISOString().split('T')[0] : "",
-        startTime: startTime ? startTime.toLocaleTimeString('it-IT') : "",
-        endTime: endTime ? endTime.toLocaleTimeString('it-IT') : "",
+        startTime: startTime ? startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : "",
+        endTime: endTime ? endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : "",
         ...utm,
         page: window.location.href,
         timestamp: new Date().toISOString(),
         source: "catherineh-lab-b2b-landing",
       };
-      
+
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -219,14 +227,14 @@ export default function LandingCatherineHLabB2B() {
             <span className="hidden md:inline text-white/50 text-sm">• B2B Catering</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <button onClick={() => scrollToRef(featuresRef)} className="hover:text-pink-300">서비스</button>
-            <button onClick={() => scrollToRef(packagesRef)} className="hover:text-pink-300">패키지</button>
-            <button onClick={() => scrollToRef(processRef)} className="hover:text-pink-300">프로세스</button>
-            <button onClick={() => scrollToRef(galleryRef)} className="hover:text-pink-300">갤러리</button>
-            <button onClick={() => scrollToRef(faqRef)} className="hover:text-pink-300">FAQ</button>
+            <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-pink-300 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>서비스</button>
+            <button onClick={() => document.getElementById('packages')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-pink-300 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>패키지</button>
+            <button onClick={() => document.getElementById('process')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-pink-300 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>프로세스</button>
+            <button onClick={() => document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-pink-300 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>갤러리</button>
+            <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-pink-300 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>FAQ</button>
           </nav>
           <div className="flex items-center gap-3">
-            <button onClick={() => scrollToRef(leadFormRef)} className="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
+            <button onClick={() => document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' })} className="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>
               견적 문의
             </button>
           </div>
@@ -234,7 +242,7 @@ export default function LandingCatherineHLabB2B() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section className="relative">
         <div className="absolute inset-0 bg-[radial-gradient(50%_50%_at_50%_0%,rgba(236,72,153,0.15),rgba(11,11,15,0))]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-24 pb-10 md:pb-16">
           <div className="grid md:grid-cols-12 gap-8 items-center">
@@ -252,11 +260,29 @@ export default function LandingCatherineHLabB2B() {
               <p className="mt-5 text-white/80 max-w-2xl">
                 미쉐린 출신 셰프의 맞춤 메뉴 제안 · 철저한 현장 운영 · 시간 정확성. 창립기념식, 컨퍼런스, VIP 미팅까지 — 귀사만의 스토리를 담은 메뉴로 완성합니다.
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <button onClick={() => scrollToRef(leadFormRef)} className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
+              <div className="mt-8 flex flex-wrap items-center gap-3 relative z-50">
+                <button 
+                  onClick={() => {
+                    const element = document.getElementById('lead-form');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-colors cursor-pointer relative z-50"
+                  style={{ pointerEvents: 'auto' }}
+                >
                   지금 견적 받기
                 </button>
-                <button onClick={() => scrollToRef(packagesRef)} className="px-5 py-3 rounded-xl border border-white/20 hover:border-white/40">
+                <button 
+                  onClick={() => {
+                    const element = document.getElementById('packages');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="px-5 py-3 rounded-xl border border-white/20 hover:border-white/40 transition-colors cursor-pointer relative z-50"
+                  style={{ pointerEvents: 'auto' }}
+                >
                   패키지 보기
                 </button>
               </div>
@@ -273,12 +299,12 @@ export default function LandingCatherineHLabB2B() {
             <div className="md:col-span-5">
               <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 p-2">
                 <img
-                  src="https://images.unsplash.com/photo-1546793665-c74683f339c1?q=80&w=1200&auto=format&fit=crop"
-                  alt="Premium corporate catering table"
+                  src="https://images.unsplash.com/photo-1530062845289-9109b2893123?q=80&w=1200&auto=format&fit=crop"
+                  alt="홀에서 케이터링 준비 현장"
                   className="rounded-2xl object-cover h-[360px] w-full"
                 />
                 <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur px-3 py-2 rounded-lg text-xs">
-                  실제 현장 촬영 이미지 예시
+                  Catherine H Lab 케이터링 현장
                 </div>
               </div>
             </div>
@@ -346,7 +372,7 @@ export default function LandingCatherineHLabB2B() {
                 ))}
               </ul>
               <div className="mt-6">
-                <button onClick={() => scrollToRef(leadFormRef)} className="w-full px-4 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">견적 문의</button>
+                <button onClick={() => document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' })} className="block w-full px-4 py-3 text-center rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>견적 문의</button>
               </div>
             </div>
           ))}
@@ -374,19 +400,25 @@ export default function LandingCatherineHLabB2B() {
 
       {/* Gallery */}
       <section ref={galleryRef} id="gallery" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-        <SectionTitle title="현장 스냅샷" subtitle="브랜드 무드를 살린 연출과 디테일" />
+        <SectionTitle title="케이터링 포트폴리오" subtitle="실제 현장에서 진행한 프리미엄 케이터링 서비스" />
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[
-            "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1200&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1544145945-f90425340c7e?q=80&w=1200&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1526318472351-c75fcf070305?q=80&w=1200&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1514517255080-08c0722c3d42?q=80&w=1200&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1468218620578-c8c97b75cf3b?q=80&w=1200&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1543345972-1bf75b6fe8ef?q=80&w=1200&auto=format&fit=crop",
-          ].map((src) => (
-            <div key={src} className="relative group overflow-hidden rounded-2xl border border-white/10">
-              <img src={src} alt="Catering scene" className="h-52 w-full object-cover group-hover:scale-[1.03] transition" />
+            { src: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?q=80&w=1200&auto=format&fit=crop", alt: "연예인 행사 케이터링" },
+            { src: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1200&auto=format&fit=crop", alt: "비즈니스 런치 뷔페 셋업" },
+            { src: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?q=80&w=1200&auto=format&fit=crop", alt: "컨퍼런스 커피브레이크 서비스" },
+            { src: "https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=1200&auto=format&fit=crop", alt: "고급 비즈니스 디너 세팅" },
+            { src: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=1200&auto=format&fit=crop", alt: "VIP 도시락 패키징" },
+            { src: "https://images.unsplash.com/photo-1555243896-c709bfa0b564?q=80&w=1200&auto=format&fit=crop", alt: "프리미엄 케이터링 현장 셋업" },
+            { src: "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1200&auto=format&fit=crop", alt: "기업 행사 테이블 세팅" },
+            { src: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop", alt: "스타트업 투자행사 케이터링" },
+            { src: "https://images.unsplash.com/photo-1559329007-40df8c5146bd?q=80&w=1200&auto=format&fit=crop", alt: "창립기념식 케이터링 서비스" },
+          ].map((item) => (
+            <div key={item.src} className="relative group overflow-hidden rounded-2xl border border-white/10">
+              <img src={item.src} alt={item.alt} className="h-52 w-full object-cover group-hover:scale-[1.03] transition" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition" />
+              <div className="absolute bottom-3 left-3 right-3 text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition">
+                {item.alt}
+              </div>
             </div>
           ))}
         </div>
@@ -548,7 +580,7 @@ export default function LandingCatherineHLabB2B() {
             <h3 className="text-2xl md:text-4xl font-extrabold">브랜드 가치를 높이는 케이터링, 지금 시작하세요</h3>
             <p className="text-white/70 mt-3">간단히 문의만 남겨주세요. 24시간 이내 맞춤 제안을 드립니다.</p>
             <div className="mt-6">
-              <button onClick={() => scrollToRef(leadFormRef)} className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">견적 문의</button>
+              <button onClick={() => document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' })} className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-colors cursor-pointer relative z-50" style={{ pointerEvents: 'auto' }}>견적 문의</button>
             </div>
           </div>
         </div>
@@ -560,7 +592,7 @@ export default function LandingCatherineHLabB2B() {
           <div className="space-y-2">
             <div className="font-bold">Catherine H Lab</div>
             <div className="text-white/60">서울특별시 마포구 성미산로 43 6층 · B2B 케이터링 & VIP 도시락</div>
-            <div className="text-white/50">contact@catherineh-lab.com · 02-000-0000</div>
+            <div className="text-white/50">contact@catherineh-lab.com · 010-9245-0705</div>
             <div className="text-white/50">인스타그램: @catherineH-Lab | 네이버플레이스: 캐서린에이치랩</div>
           </div>
           <div className="text-white/50">

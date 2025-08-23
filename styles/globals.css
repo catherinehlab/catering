@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: auto;
+  scroll-padding-top: 80px;
+}
+
+html, body {
+  height: 100%;
+}
+
 /* react-datepicker custom styles for dark theme */
 .react-datepicker {
   background-color: #1a1a1f;
