@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import DatePicker, { registerLocale } from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { ko } from "date-fns/locale/ko";
+registerLocale("ko", ko);
 
 /**
  * Catherine H Lab — B2B Catering Landing Page
@@ -20,19 +24,18 @@ export default function LandingCatherineHLabB2B() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [utm, setUtm] = useState({ utm_source: "", utm_medium: "", utm_campaign: "", utm_term: "", utm_content: "" });
-  const [form, setForm] = useState({
-    name: "",
-    company: "",
-    email: "",
-    phone: "",
-    eventDate: "",
-    headcount: "",
-    budget: "",
-    message: "",
-    honeypot: "",
-  });
+  
+  const [eventDate, setEventDate] = useState<Date | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
 
   const formRef = useRef<HTMLFormElement | null>(null);
+  const featuresRef = useRef<HTMLElement | null>(null);
+  const packagesRef = useRef<HTMLElement | null>(null);
+  const processRef = useRef<HTMLElement | null>(null);
+  const galleryRef = useRef<HTMLElement | null>(null);
+  const faqRef = useRef<HTMLElement | null>(null);
+  const leadFormRef = useRef<HTMLElement | null>(null);
 
   // Capture UTM params
   useEffect(() => {
@@ -48,41 +51,50 @@ export default function LandingCatherineHLabB2B() {
   }, []);
 
   // Scroll helpers
-  const scrollToId = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const scrollToRef = (ref: React.RefObject<HTMLElement>) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const validate = () => {
-    if (!form.name || !form.email || !form.company) return "이름/회사/이메일은 필수입니다.";
-    const emailOk = /.+@.+..+/.test(form.email);
-    if (!emailOk) return "올바른 이메일 형식을 입력해주세요.";
-    if (form.honeypot) return "스팸 감지"; // hidden field trap
-    return null;
-  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const v = validate();
-    if (v) {
-      setError(v);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const formValues = Object.fromEntries(formData.entries());
+    
+    // Basic validation
+    if (!formValues.name || !formValues.email || !formValues.company) {
+      setError("이름/회사/이메일은 필수입니다.");
       return;
     }
+    
+    const emailOk = /.+@.+\..+/.test(formValues.email as string);
+    if (!emailOk) {
+      setError("올바른 이메일 형식을 입력해주세요.");
+      return;
+    }
+    
+    if (formValues.honeypot) {
+      setError("스팸 감지");
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const payload = {
-        ...form,
+        ...formValues,
+        eventDate: eventDate ? eventDate.toISOString().split('T')[0] : "",
+        startTime: startTime ? startTime.toLocaleTimeString('it-IT') : "",
+        endTime: endTime ? endTime.toLocaleTimeString('it-IT') : "",
         ...utm,
         page: window.location.href,
         timestamp: new Date().toISOString(),
         source: "catherineh-lab-b2b-landing",
       };
+      
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,6 +106,9 @@ export default function LandingCatherineHLabB2B() {
       // window.gtag?.("event", "lead_submit", { method: "landing_form" });
       // fbq?.("track", "Lead");
       formRef.current?.reset();
+      setEventDate(null);
+      setStartTime(null);
+      setEndTime(null);
     } catch (err: any) {
       setError(err.message || "제출 중 오류가 발생했습니다.");
     } finally {
@@ -135,13 +150,12 @@ export default function LandingCatherineHLabB2B() {
         type={type}
         placeholder={placeholder}
         required={required}
-        onChange={onChange}
         {...rest}
       />
     </label>
   );
 
-  const Textarea = ({ label, name, placeholder, rows = 4, onChange, ...rest }: any) => (
+  const Textarea = ({ label, name, placeholder, rows = 4, ...rest }: any) => (
     <label className="block">
       <span className="text-sm text-white/80">{label}</span>
       <textarea
@@ -149,7 +163,6 @@ export default function LandingCatherineHLabB2B() {
         name={name}
         placeholder={placeholder}
         rows={rows}
-        onChange={onChange}
         {...rest}
       />
     </label>
@@ -159,6 +172,19 @@ export default function LandingCatherineHLabB2B() {
     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/10 border border-white/10">
       {children}
     </span>
+  );
+
+  const DatePickerInput = ({ label, selected, onChange, ...props }: any) => (
+    <label className="block">
+      <span className="text-sm text-white/80">{label}</span>
+      <DatePicker
+        selected={selected}
+        onChange={onChange}
+        className="mt-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
+        locale="ko"
+        {...props}
+      />
+    </label>
   );
 
   return (
@@ -193,14 +219,14 @@ export default function LandingCatherineHLabB2B() {
             <span className="hidden md:inline text-white/50 text-sm">• B2B Catering</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <button onClick={() => scrollToId("features")} className="hover:text-pink-300">서비스</button>
-            <button onClick={() => scrollToId("packages")} className="hover:text-pink-300">패키지</button>
-            <button onClick={() => scrollToId("process")} className="hover:text-pink-300">프로세스</button>
-            <button onClick={() => scrollToId("gallery")} className="hover:text-pink-300">갤러리</button>
-            <button onClick={() => scrollToId("faq")} className="hover:text-pink-300">FAQ</button>
+            <button onClick={() => scrollToRef(featuresRef)} className="hover:text-pink-300">서비스</button>
+            <button onClick={() => scrollToRef(packagesRef)} className="hover:text-pink-300">패키지</button>
+            <button onClick={() => scrollToRef(processRef)} className="hover:text-pink-300">프로세스</button>
+            <button onClick={() => scrollToRef(galleryRef)} className="hover:text-pink-300">갤러리</button>
+            <button onClick={() => scrollToRef(faqRef)} className="hover:text-pink-300">FAQ</button>
           </nav>
           <div className="flex items-center gap-3">
-            <button onClick={() => scrollToId("lead-form")} className="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
+            <button onClick={() => scrollToRef(leadFormRef)} className="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
               견적 문의
             </button>
           </div>
@@ -227,10 +253,10 @@ export default function LandingCatherineHLabB2B() {
                 미쉐린 출신 셰프의 맞춤 메뉴 제안 · 철저한 현장 운영 · 시간 정확성. 창립기념식, 컨퍼런스, VIP 미팅까지 — 귀사만의 스토리를 담은 메뉴로 완성합니다.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <button onClick={() => scrollToId("lead-form")} className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
+                <button onClick={() => scrollToRef(leadFormRef)} className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
                   지금 견적 받기
                 </button>
-                <button onClick={() => scrollToId("packages")} className="px-5 py-3 rounded-xl border border-white/20 hover:border-white/40">
+                <button onClick={() => scrollToRef(packagesRef)} className="px-5 py-3 rounded-xl border border-white/20 hover:border-white/40">
                   패키지 보기
                 </button>
               </div>
@@ -274,7 +300,7 @@ export default function LandingCatherineHLabB2B() {
       </section>
 
       {/* Features */}
-      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <section ref={featuresRef} id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <SectionTitle
           eyebrow="What we do"
           title="기업 행사에 최적화된 풀서비스 케이터링"
@@ -300,7 +326,7 @@ export default function LandingCatherineHLabB2B() {
       </section>
 
       {/* Packages */}
-      <section id="packages" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <section ref={packagesRef} id="packages" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <SectionTitle title="추천 패키지" subtitle="인원/예산/목적별로 바로 선택하거나, 완전 맞춤 제작 가능" />
         <div className="grid md:grid-cols-3 gap-6">
           {[
@@ -320,7 +346,7 @@ export default function LandingCatherineHLabB2B() {
                 ))}
               </ul>
               <div className="mt-6">
-                <button onClick={() => scrollToId("lead-form")} className="w-full px-4 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">견적 문의</button>
+                <button onClick={() => scrollToRef(leadFormRef)} className="w-full px-4 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">견적 문의</button>
               </div>
             </div>
           ))}
@@ -328,7 +354,7 @@ export default function LandingCatherineHLabB2B() {
       </section>
 
       {/* Process */}
-      <section id="process" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <section ref={processRef} id="process" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <SectionTitle eyebrow="How it works" title="진행 프로세스" />
         <ol className="grid md:grid-cols-4 gap-6 counter-reset">
           {[
@@ -347,7 +373,7 @@ export default function LandingCatherineHLabB2B() {
       </section>
 
       {/* Gallery */}
-      <section id="gallery" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <section ref={galleryRef} id="gallery" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <SectionTitle title="현장 스냅샷" subtitle="브랜드 무드를 살린 연출과 디테일" />
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[
@@ -384,7 +410,7 @@ export default function LandingCatherineHLabB2B() {
       </section>
 
       {/* Lead Form */}
-      <section id="lead-form" className="relative">
+      <section ref={leadFormRef} id="lead-form" className="relative">
         <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_50%_-10%,rgba(236,72,153,0.20),rgba(11,11,15,0))]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <SectionTitle title="견적·상담 문의" subtitle="아래 정보를 남겨주시면 24시간 이내 회신드리겠습니다." />
@@ -399,15 +425,45 @@ export default function LandingCatherineHLabB2B() {
                   <Input label="이메일" name="email" type="email" required placeholder="you@company.com" />
                   <Input label="연락처" name="phone" type="tel" placeholder="010-0000-0000" />
                 </div>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <Input label="행사일자" name="eventDate" type="date" />
+                <div className="grid sm:grid-cols-4 gap-4">
+                  <DatePickerInput
+                    label="행사일자"
+                    selected={eventDate}
+                    onChange={(date: Date | null) => setEventDate(date)}
+                    dateFormat="yyyy/MM/dd"
+                    placeholderText="날짜 선택"
+                  />
+                  <DatePickerInput
+                    label="시작시간"
+                    selected={startTime}
+                    onChange={(date: Date | null) => setStartTime(date)}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeCaption="Time"
+                    dateFormat="h:mm aa"
+                    placeholderText="시간 선택"
+                  />
+                  <DatePickerInput
+                    label="종료시간"
+                    selected={endTime}
+                    onChange={(date: Date | null) => setEndTime(date)}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeCaption="Time"
+                    dateFormat="h:mm aa"
+                    placeholderText="시간 선택"
+                  />
                   <Input label="예상 인원" name="headcount" type="number" placeholder="50" />
+                </div>
+                <div className="grid sm:grid-cols-1 gap-4">
                   <Input label="예산(만원)" name="budget" type="number" placeholder="300" />
                 </div>
                 {/* Honeypot */}
-                <input className="hidden" name="honeypot" onChange={onChange} tabIndex={-1} autoComplete="off" />
+                <input className="hidden" name="honeypot" tabIndex={-1} autoComplete="off" />
 
-                <Textarea label="요청사항 / 알레르기" name="message" placeholder="행사 목적, 장소, 브랜드 가이드, 알레르기/채식 등" onChange={onChange} />
+                <Textarea label="요청사항 / 알레르기" name="message" placeholder="행사 목적, 장소, 브랜드 가이드, 알레르기/채식 등" />
 
                 {/* UTM hidden */}
                 <input type="hidden" name="utm_source" value={utm.utm_source} />
@@ -464,7 +520,7 @@ export default function LandingCatherineHLabB2B() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <section ref={faqRef} id="faq" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <SectionTitle title="자주 묻는 질문" />
         <div className="grid md:grid-cols-2 gap-6">
           {[
@@ -492,7 +548,7 @@ export default function LandingCatherineHLabB2B() {
             <h3 className="text-2xl md:text-4xl font-extrabold">브랜드 가치를 높이는 케이터링, 지금 시작하세요</h3>
             <p className="text-white/70 mt-3">간단히 문의만 남겨주세요. 24시간 이내 맞춤 제안을 드립니다.</p>
             <div className="mt-6">
-              <button onClick={() => scrollToId("lead-form")} className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">견적 문의</button>
+              <button onClick={() => scrollToRef(leadFormRef)} className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90">견적 문의</button>
             </div>
           </div>
         </div>
