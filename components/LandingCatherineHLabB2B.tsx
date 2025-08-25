@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import DatePicker, { registerLocale } from "react-datepicker";
+import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { ko } from "date-fns/locale/ko";
-registerLocale("ko", ko);
 
 /**
  * Catherine H Lab — B2B Catering Landing Page
@@ -20,18 +18,35 @@ registerLocale("ko", ko);
 const WEBHOOK_URL = "https://n8n.ax-con.com/webhook/catherineh-lab-b2b-lead"; // n8n webhook endpoint
 
 export default function LandingCatherineHLabB2B() {
-  console.log('LandingCatherineHLabB2B 컴포넌트가 렌더링되었습니다');
   
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [utm, setUtm] = useState({ utm_source: "", utm_medium: "", utm_campaign: "", utm_term: "", utm_content: "" });
-  
   const [eventDate, setEventDate] = useState<Date | null>(null);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [endTime, setEndTime] = useState<Date | null>(null);
+  
+  // UTM tracking
+  const utm = useMemo(() => {
+    if (typeof window === "undefined") {
+      return {
+        utm_source: "direct",
+        utm_medium: "organic",
+        utm_campaign: "",
+        utm_term: "",
+        utm_content: "",
+      };
+    }
+    const params = new URLSearchParams(window.location.search);
+    return {
+      utm_source: params.get("utm_source") || "direct",
+      utm_medium: params.get("utm_medium") || "organic",
+      utm_campaign: params.get("utm_campaign") || "",
+      utm_term: params.get("utm_term") || "",
+      utm_content: params.get("utm_content") || "",
+    };
+  }, []);
 
   const formRef = useRef<HTMLFormElement>(null);
+  
   const featuresRef = useRef<HTMLElement>(null);
   const packagesRef = useRef<HTMLElement>(null);
   const processRef = useRef<HTMLElement>(null);
@@ -39,90 +54,76 @@ export default function LandingCatherineHLabB2B() {
   const faqRef = useRef<HTMLElement>(null);
   const leadFormRef = useRef<HTMLElement>(null);
 
-  // Capture UTM params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const get = (k: string) => params.get(k) || "";
-    setUtm({
-      utm_source: get("utm_source"),
-      utm_medium: get("utm_medium"),
-      utm_campaign: get("utm_campaign"),
-      utm_term: get("utm_term"),
-      utm_content: get("utm_content"),
-    });
-  }, []);
 
-  // Scroll helpers
   const scrollToRef = (ref: React.RefObject<HTMLElement>) => {
-    console.log('scrollToRef called', ref);
     if (ref.current) {
-      console.log('scrolling to element', ref.current);
       ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      console.log('ref.current is null', ref);
     }
   };
 
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    
+    if (submitting) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get('name') as string,
+      company: formData.get('company') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      eventDate: eventDate ? eventDate.toISOString().split('T')[0] : '',
+      headcount: formData.get('headcount') as string,
+      budget: formData.get('budget') as string,
+      message: formData.get('message') as string,
+      timestamp: new Date().toISOString(),
+      source: "catherineh-lab-b2b-landing"
+    };
 
-    if (!formRef.current) return;
-
-    const formData = new FormData(formRef.current);
-    const formValues = Object.fromEntries(formData.entries());
-
-    // Basic validation
-    if (!formValues.name || !formValues.email || !formValues.company) {
-      setError("이름/회사/이메일은 필수입니다.");
+    // 필수 필드 검사
+    if (!data.name.trim() || !data.email.trim() || !data.company.trim()) {
+      setError("이름, 이메일, 회사명은 필수입니다.");
       return;
     }
 
-    const emailOk = /.+@.+\..+/.test(formValues.email as string);
-    if (!emailOk) {
-      setError("올바른 이메일 형식을 입력해주세요.");
-      return;
-    }
-
-    if (formValues.honeypot) {
-      setError("스팸 감지");
+    // 이메일 형식 검사
+    if (!/\S+@\S+\.\S+/.test(data.email)) {
+      setError("올바른 이메일 주소를 입력해주세요.");
       return;
     }
 
     setSubmitting(true);
-    try {
-      const payload = {
-        ...formValues,
-        eventDate: eventDate ? eventDate.toISOString().split('T')[0] : "",
-        startTime: startTime ? startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : "",
-        endTime: endTime ? endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : "",
-        ...utm,
-        page: window.location.href,
-        timestamp: new Date().toISOString(),
-        source: "catherineh-lab-b2b-landing",
-      };
 
-      const res = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error(`Submit failed: ${res.status}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       setSubmitted(true);
-      // Basic event for analytics
-      // window.gtag?.("event", "lead_submit", { method: "landing_form" });
-      // fbq?.("track", "Lead");
-      formRef.current?.reset();
+      // 성공시에만 폼 초기화
+      if (formRef.current) {
+        formRef.current.reset();
+      }
       setEventDate(null);
-      setStartTime(null);
-      setEndTime(null);
-    } catch (err: any) {
-      setError(err.message || "제출 중 오류가 발생했습니다.");
+      
+    } catch (error) {
+      console.error('Submit error:', error);
+      setError("전송 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const Stat = ({ label, value }: { label: string; value: string }) => (
     <div className="flex flex-col items-start">
@@ -149,50 +150,10 @@ export default function LandingCatherineHLabB2B() {
     </div>
   );
 
-  const Input = ({ label, name, type = "text", placeholder, required = false, ...rest }: any) => (
-    <label className="block">
-      <span className="text-sm text-white/80">{label}{required && <span className="text-pink-400 ml-1">*</span>}</span>
-      <input
-        className="mt-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
-        name={name}
-        type={type}
-        placeholder={placeholder}
-        required={required}
-        {...rest}
-      />
-    </label>
-  );
-
-  const Textarea = ({ label, name, placeholder, rows = 4, ...rest }: any) => (
-    <label className="block">
-      <span className="text-sm text-white/80">{label}</span>
-      <textarea
-        className="mt-2 w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
-        name={name}
-        placeholder={placeholder}
-        rows={rows}
-        {...rest}
-      />
-    </label>
-  );
-
   const Pill = ({ children }: { children: React.ReactNode }) => (
     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/10 border border-white/10">
       {children}
     </span>
-  );
-
-  const DatePickerInput = ({ label, selected, onChange, ...props }: any) => (
-    <label className="block">
-      <span className="text-sm text-white/80">{label}</span>
-      <DatePicker
-        selected={selected}
-        onChange={onChange}
-        className="mt-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
-        locale="ko"
-        {...props}
-      />
-    </label>
   );
 
   return (
@@ -299,8 +260,8 @@ export default function LandingCatherineHLabB2B() {
             <div className="md:col-span-5">
               <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 p-2">
                 <img
-                  src="https://images.unsplash.com/photo-1530062845289-9109b2893123?q=80&w=1200&auto=format&fit=crop"
-                  alt="홀에서 케이터링 준비 현장"
+                  src="https://images.unsplash.com/photo-1555244162-803834f70033?q=80&w=1200&auto=format&fit=crop"
+                  alt="Catherine H Lab 케이터링 현장 준비"
                   className="rounded-2xl object-cover h-[360px] w-full"
                 />
                 <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur px-3 py-2 rounded-lg text-xs">
@@ -403,15 +364,15 @@ export default function LandingCatherineHLabB2B() {
         <SectionTitle title="케이터링 포트폴리오" subtitle="실제 현장에서 진행한 프리미엄 케이터링 서비스" />
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[
-            { src: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?q=80&w=1200&auto=format&fit=crop", alt: "연예인 행사 케이터링" },
+            { src: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=1200&auto=format&fit=crop", alt: "연예인 행사 케이터링" },
             { src: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1200&auto=format&fit=crop", alt: "비즈니스 런치 뷔페 셋업" },
             { src: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?q=80&w=1200&auto=format&fit=crop", alt: "컨퍼런스 커피브레이크 서비스" },
             { src: "https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=1200&auto=format&fit=crop", alt: "고급 비즈니스 디너 세팅" },
             { src: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=1200&auto=format&fit=crop", alt: "VIP 도시락 패키징" },
             { src: "https://images.unsplash.com/photo-1555243896-c709bfa0b564?q=80&w=1200&auto=format&fit=crop", alt: "프리미엄 케이터링 현장 셋업" },
-            { src: "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1200&auto=format&fit=crop", alt: "기업 행사 테이블 세팅" },
-            { src: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop", alt: "스타트업 투자행사 케이터링" },
-            { src: "https://images.unsplash.com/photo-1559329007-40df8c5146bd?q=80&w=1200&auto=format&fit=crop", alt: "창립기념식 케이터링 서비스" },
+            { src: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1200&auto=format&fit=crop", alt: "기업 행사 테이블 세팅" },
+            { src: "https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=1200&auto=format&fit=crop", alt: "스타트업 투자행사 케이터링" },
+            { src: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop", alt: "창립기념식 케이터링 서비스" },
           ].map((item) => (
             <div key={item.src} className="relative group overflow-hidden rounded-2xl border border-white/10">
               <img src={item.src} alt={item.alt} className="h-52 w-full object-cover group-hover:scale-[1.03] transition" />
@@ -448,80 +409,153 @@ export default function LandingCatherineHLabB2B() {
           <SectionTitle title="견적·상담 문의" subtitle="아래 정보를 남겨주시면 24시간 이내 회신드리겠습니다." />
           <div className="grid md:grid-cols-12 gap-8">
             <div className="md:col-span-7">
-              <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Input label="이름" name="name" required placeholder="홍길동" />
-                  <Input label="회사명" name="company" required placeholder="ABC Corp" />
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Input label="이메일" name="email" type="email" required placeholder="you@company.com" />
-                  <Input label="연락처" name="phone" type="tel" placeholder="010-0000-0000" />
-                </div>
-                <div className="grid sm:grid-cols-4 gap-4">
-                  <DatePickerInput
-                    label="행사일자"
-                    selected={eventDate}
-                    onChange={(date: Date | null) => setEventDate(date)}
-                    dateFormat="yyyy/MM/dd"
-                    placeholderText="날짜 선택"
-                  />
-                  <DatePickerInput
-                    label="시작시간"
-                    selected={startTime}
-                    onChange={(date: Date | null) => setStartTime(date)}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeCaption="Time"
-                    dateFormat="h:mm aa"
-                    placeholderText="시간 선택"
-                  />
-                  <DatePickerInput
-                    label="종료시간"
-                    selected={endTime}
-                    onChange={(date: Date | null) => setEndTime(date)}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeCaption="Time"
-                    dateFormat="h:mm aa"
-                    placeholderText="시간 선택"
-                  />
-                  <Input label="예상 인원" name="headcount" type="number" placeholder="50" />
-                </div>
-                <div className="grid sm:grid-cols-1 gap-4">
-                  <Input label="예산(만원)" name="budget" type="number" placeholder="300" />
-                </div>
-                {/* Honeypot */}
-                <input className="hidden" name="honeypot" tabIndex={-1} autoComplete="off" />
-
-                <Textarea label="요청사항 / 알레르기" name="message" placeholder="행사 목적, 장소, 브랜드 가이드, 알레르기/채식 등" />
-
-                {/* UTM hidden */}
-                <input type="hidden" name="utm_source" value={utm.utm_source} />
-                <input type="hidden" name="utm_medium" value={utm.utm_medium} />
-                <input type="hidden" name="utm_campaign" value={utm.utm_campaign} />
-                <input type="hidden" name="utm_term" value={utm.utm_term} />
-                <input type="hidden" name="utm_content" value={utm.utm_content} />
-
-                {error && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-200 text-sm">{error}</div>
-                )}
-                {submitted ? (
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
-                    접수되었습니다! 담당자가 영업일 기준 24시간 이내 연락드리겠습니다.
+              {submitted ? (
+                <div className="max-w-2xl mx-auto p-8 text-center">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">
+                      문의가 성공적으로 전송되었습니다!
+                    </h3>
+                    <p className="text-green-700">
+                      24시간 이내에 담당자가 연락드리겠습니다.
+                    </p>
+                    <button
+                      onClick={() => setSubmitted(false)}
+                      className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      새 문의하기
+                    </button>
                   </div>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full md:w-auto px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 disabled:opacity-60"
-                  >
-                    {submitting ? "전송 중..." : "견적 요청 보내기"}
-                  </button>
+                </div>
+              ) : (
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                    {error}
+                  </div>
                 )}
-                <p className="text-xs text-white/60">제출 시 개인정보 처리방침에 동의하는 것으로 간주합니다. 상업적 스팸 차단을 위해 제출 IP가 기록될 수 있습니다.</p>
-              </form>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      이름 *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                      placeholder="홍길동"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      회사명 *
+                    </label>
+                    <input
+                      type="text"
+                      name="company"
+                      required
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                      placeholder="ABC Company"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      이메일 *
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      연락처
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                      placeholder="010-0000-0000"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      행사일자
+                    </label>
+                    <DatePicker
+                      selected={eventDate}
+                      onChange={(date: Date | null) => setEventDate(date)}
+                      dateFormat="yyyy년 MM월 dd일"
+                      placeholderText="날짜를 선택해주세요"
+                      minDate={new Date()}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      예상 인원
+                    </label>
+                    <input
+                      type="number"
+                      name="headcount"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                      placeholder="50"
+                      min="1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      예산 (만원)
+                    </label>
+                    <input
+                      type="number"
+                      name="budget"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none"
+                      placeholder="300"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    요청사항 / 특별사항
+                  </label>
+                  <textarea
+                    name="message"
+                    rows={4}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/60 focus:border-white/30 focus:outline-none resize-vertical"
+                    placeholder="알레르기 정보나 특별한 요청사항이 있으시면 적어주세요."
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-white text-black py-4 px-8 rounded-lg font-semibold hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {submitting ? "전송 중..." : "견적 요청 보내기"}
+                </button>
+
+                <p className="text-sm text-white/60 text-center">
+                  제출 시 개인정보 처리방침에 동의하는 것으로 간주합니다.
+                </p>
+                </form>
+              )}
             </div>
             <div className="md:col-span-5">
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6 sticky top-24">

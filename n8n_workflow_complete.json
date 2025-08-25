@@ -1,0 +1,189 @@
+{
+  "name": "Catherine H Lab - Complete B2B Lead Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catherineh-lab-b2b-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-complete",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "catherineh-lab-b2b-lead"
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@catherineh-lab.com",
+        "toEmail": "catherinehlab@gmail.com",
+        "subject": "[신규 문의] 캐서린에이치랩 B2B 케이터링 문의",
+        "text": "={{ '새로운 B2B 케이터링 문의가 접수되었습니다.\\n\\n이름: ' + $json.body.name + '\\n회사: ' + $json.body.company + '\\n이메일: ' + $json.body.email + '\\n연락처: ' + $json.body.phone + '\\n행사일자: ' + $json.body.eventDate + '\\n예상인원: ' + $json.body.headcount + '명\\n예산: ' + $json.body.budget + '만원\\n\\n메시지:\\n' + $json.body.message + '\\n\\n제출시간: ' + $json.body.timestamp + '\\n소스: ' + $json.body.source }}",
+        "options": {}
+      },
+      "id": "email-internal",
+      "name": "Internal Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [460, 160],
+      "credentials": {
+        "smtp": {
+          "id": "catherine-h-lab-smtp",
+          "name": "Catherine H Lab SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "contact@catherineh-lab.com",
+        "toEmail": "={{ $json.body.email }}",
+        "subject": "캐서린에이치랩 케이터링 문의 접수 확인",
+        "text": "={{ $json.body.name + '님, 안녕하세요!\\n\\n캐서린에이치랩에 문의해주셔서 감사합니다.\\n문의하신 내용이 성공적으로 접수되었으며, 담당자가 영업일 기준 24시간 이내에 연락드릴 예정입니다.\\n\\n접수된 문의 내용:\\n• 회사명: ' + $json.body.company + '\\n• 행사일자: ' + $json.body.eventDate + '\\n• 예상 인원: ' + $json.body.headcount + '명\\n• 예산: ' + $json.body.budget + '만원\\n• 요청사항: ' + $json.body.message + '\\n\\n궁금한 점이 있으시면 언제든 이메일로 회신해주세요.\\n\\n감사합니다.\\n캐서린에이치랩 드림\\n\\n---\\n이메일: contact@catherineh-lab.com\\n전화: 010-9245-0705\\n웹사이트: https://catherineh-lab.com' }}",
+        "options": {}
+      },
+      "id": "email-customer",
+      "name": "Customer Auto Reply",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [460, 280],
+      "credentials": {
+        "smtp": {
+          "id": "catherine-h-lab-smtp",
+          "name": "Catherine H Lab SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "1971680823",
+        "text": "={{ '🔔 새로운 B2B 케이터링 문의\\n\\n👤 이름: ' + $json.body.name + '\\n🏢 회사: ' + $json.body.company + '\\n📧 이메일: ' + $json.body.email + '\\n📞 연락처: ' + $json.body.phone + '\\n📅 행사일자: ' + $json.body.eventDate + '\\n👥 예상인원: ' + $json.body.headcount + '명\\n💰 예산: ' + $json.body.budget + '만원\\n\\n📝 메시지:\\n' + $json.body.message + '\\n\\n⏰ 접수시간: ' + $json.body.timestamp }}",
+        "options": {}
+      },
+      "id": "telegram-notification",
+      "name": "Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [460, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "catherine-h-lab-telegram",
+          "name": "Catherine H Lab Telegram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendRow",
+        "sheetId": "REPLACE_WITH_GOOGLE_SHEET_ID",
+        "range": "A:M",
+        "values": "=[[$json.body.name, $json.body.company, $json.body.email, $json.body.phone, $json.body.eventDate, $json.body.headcount, $json.body.budget, $json.body.message, $json.body.utm_source, $json.body.utm_medium, $json.body.page, $json.body.timestamp, $json.body.source]]",
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Google Sheets Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [460, 520],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "catherine-h-lab-sheets",
+          "name": "Catherine H Lab Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: $json.body.name + '님의 문의가 성공적으로 접수되었습니다. 24시간 이내에 연락드리겠습니다.', timestamp: new Date().toISOString(), data: { name: $json.body.name, company: $json.body.company, email: $json.body.email, phone: $json.body.phone, eventDate: $json.body.eventDate, headcount: $json.body.headcount, budget: $json.body.budget } }) }}"
+      },
+      "id": "response-success",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 340]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Internal Email Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Customer Auto Reply",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Internal Email Notification": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Auto Reply": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Log": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2024-08-25T00:00:00.000Z",
+  "updatedAt": "2024-08-25T00:00:00.000Z",
+  "id": "catherine-h-lab-complete",
+  "tags": []
+}
